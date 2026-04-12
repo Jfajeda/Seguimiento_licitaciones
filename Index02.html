@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Radar Licitaciones Cataluña | CODANOR</title>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1a4d7c;
+      --primary-dark: #0d3254;
+      --secondary: #2d8bc7;
+      --accent: #e67e22;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --success: #27ae60;
+      --warning: #f39c12;
+      --danger: #e74c3c;
+      --gray: #6c757d;
+      --border: #dee2e6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      margin: 0;
+      background: var(--light);
+      color: var(--dark);
+      line-height: 1.6;
+    }
+    .hero {
+      background: var(--primary);
+      color: white;
+      padding: 15px 20px;
+      text-align: center;
+    }
+    .hero h1 {
+      margin: 0;
+      font-size: 1.3rem;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      text-align: center;
+      border-left: 4px solid var(--primary);
+    }
+    .stat-card.urgent { border-left-color: var(--danger); }
+    .stat-card.active { border-left-color: var(--success); }
+    .stat-card.expired { border-left-color: var(--gray); }
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .stat-card.urgent .stat-number { color: var(--danger); }
+    .stat-card.active .stat-number { color: var(--success); }
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .alerts-box {
+      background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+      border-left: 4px solid var(--accent);
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .alerts-box.show { display: block; }
+    .alerts-box h3 {
+      margin: 0 0 10px;
+      color: var(--dark);
+      font-size: 1rem;
+    }
+    .alerts-box ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .filters {
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 30px;
+    }
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .filter-group label {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--primary);
+    }
+    .filter-group select {
+      padding: 10px 15px;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: border-color 0.3s;
+    }
+    .filter-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .table-container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden;
+      margin-bottom: 30px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      background: var(--primary);
+      color: white;
+      padding: 15px 12px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    tr:hover { background: #f8f9fa; }
+    tr.high { background: #d4edda; }
+    tr.medium { background: #fff3cd; }
+    tr.low { background: #f8d7da; }
+    tr.expired { opacity: 0.5; }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--light);
+      color: var(--dark);
+    }
+    .badge-norma { background: var(--secondary); color: white; }
+    .score-cell {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .score-info {
+      cursor: help;
+      color: var(--secondary);
+      font-size: 1rem;
+    }
+    .btn {
+      display: inline-block;
+      padding: 8px 16px;
+      background: var(--primary);
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: background 0.3s;
+    }
+    .btn:hover { background: var(--primary-dark); }
+    .dias-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .dias-tag.urgente { background: var(--danger); color: white; }
+    .dias-tag.ok { background: var(--success); color: white; }
+    .dias-tag.normal { background: var(--gray); color: white; }
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+    }
+    .chart-card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .chart-card h3 {
+      margin: 0 0 15px;
+      color: var(--primary);
+      font-size: 1rem;
+    }
+    footer {
+      background: var(--primary-dark);
+      color: white;
+      padding: 40px 20px;
+      margin-top: 50px;
+    }
+    .footer-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 30px;
+    }
+    .footer-section h4 {
+      margin: 0 0 15px;
+      color: var(--secondary);
+    }
+    .footer-section p, .footer-section a {
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .footer-section a:hover { color: white; }
+    .footer-bottom {
+      max-width: 1400px;
+      margin: 30px auto 0;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      text-align: center;
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+    @media (max-width: 768px) {
+      .header-content { flex-direction: column; gap: 15px; }
+      nav ul { flex-wrap: wrap; justify-content: center; }
+      th, td { padding: 8px; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>Radar de Licitaciones Públicas</h1>
+    <div style="margin-top:10px; display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap;">
+      <button class="btn-refresh" onclick="actualizarDesdeServidor()" style="padding:8px 20px; background:#27ae60; color:white; border:none; border-radius:5px; cursor:pointer; font-family:inherit; font-weight:600;">🔄 Actualizar desde Fuentes</button>
+      <button class="btn-refresh" onclick="cargarDesdeServidor()" style="padding:8px 20px; background:var(--secondary); color:white; border:none; border-radius:5px; cursor:pointer; font-family:inherit; font-weight:600;">📥 Cargar Datos del Servidor</button>
+      <span id="serverStatus" style="font-size:0.8rem; color:rgba(255,255,255,0.7);"></span>
+    </div>
+    <div id="progressBar" style="display:none; margin-top:10px;">
+      <div style="background:rgba(255,255,255,0.2); border-radius:10px; height:6px; width:300px; margin:0 auto;">
+        <div id="progressFill" style="background:#27ae60; height:100%; border-radius:10px; width:0%; transition:width 1s;"></div>
+      </div>
+      <span id="progressText" style="font-size:0.75rem; color:rgba(255,255,255,0.8);">Scraping en curso...</span>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card" onclick="filtrarVigencia('all')" style="cursor:pointer;">
+        <div class="stat-number" id="totalCount">0</div>
+        <div class="stat-label">Total (clic para ver todas)</div>
+      </div>
+      <div class="stat-card active" onclick="filtrarVigencia('activas')" style="cursor:pointer;">
+        <div class="stat-number" id="activeCount">0</div>
+        <div class="stat-label">Activas (clic para filtrar)</div>
+      </div>
+      <div class="stat-card urgent" onclick="filtrarVigencia('urgentes')" style="cursor:pointer;">
+        <div class="stat-number" id="urgentCount">0</div>
+        <div class="stat-label">Urgentes &lt;7 días (clic)</div>
+      </div>
+      <div class="stat-card expired" onclick="filtrarVigencia('caducadas')" style="cursor:pointer;">
+        <div class="stat-number" id="expiredCount">0</div>
+        <div class="stat-label">Caducadas (clic)</div>
+      </div>
+      <div class="stat-card" style="grid-column: span 3;">
+        <div class="stat-label" id="debugMsg" style="color: var(--primary);">Cargando datos...</div>
+      </div>
+    </div>
+
+    <div class="alerts-box" id="alertasContainer">
+      <h3>⚠️ Licitaciones Urgentes - Requieren Atención</h3>
+      <ul id="alertasList"></ul>
+    </div>
+
+    <div class="filters">
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label for="areaFilter">Área</label>
+          <select id="areaFilter">
+            <option value="all">Todas las áreas</option>
+            <option value="Obras">Obras</option>
+            <option value="Servicios">Servicios</option>
+            <option value="Suministros">Suministros</option>
+            <option value="Mantenimiento">Mantenimiento</option>
+            <option value="Informática">Informática</option>
+            <option value="Formación">Formación</option>
+            <option value="Sanidad">Sanidad</option>
+            <option value="Educación">Educación</option>
+            <option value="Cultural">Cultural</option>
+            <option value="Otros">Otros</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="tipoFilter">Tipo de Organismo</label>
+          <select id="tipoFilter">
+            <option value="all">Todos</option>
+            <option value="Ajuntament">Ajuntament</option>
+            <option value="Generalitat">Generalitat</option>
+            <option value="Universidad">Universidad</option>
+            <option value="Hospital">Hospital</option>
+            <option value="Empresa pública">Empresa pública</option>
+            <option value="Consorci">Consorci</option>
+            <option value="Diputació">Diputació</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="provFilter">Provincia</label>
+          <select id="provFilter">
+            <option value="all">Todas</option>
+            <option value="Barcelona">Barcelona</option>
+            <option value="Girona">Girona</option>
+            <option value="Lleida">Lleida</option>
+            <option value="Tarragona">Tarragona</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="normaFilter">Norma Afectada</label>
+          <select id="normaFilter">
+            <option value="all">Todas</option>
+            <option value="ISO9001">ISO9001</option>
+            <option value="ISO14001">ISO14001</option>
+            <option value="ISO27001">ISO27001</option>
+            <option value="ENS">ENS</option>
+            <option value="NIS2">NIS2</option>
+            <option value="ISO22301">ISO22301</option>
+            <option value="ISO45001">ISO45001</option>
+            <option value="ISO50001">ISO50001</option>
+            <option value="ISO13485">ISO13485</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="vigenciaFilter">Vigencia</label>
+          <select id="vigenciaFilter">
+            <option value="all">Todas</option>
+            <option value="activas">Solo activas</option>
+            <option value="urgentes">Urgentes (&lt;7 días)</option>
+            <option value="caducadas">Solo caducadas</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table id="licitacionesTable">
+        <thead>
+          <tr>
+            <th>Publicación</th>
+            <th>Fecha Límite</th>
+            <th>Organismo</th>
+            <th>Tipo</th>
+            <th>Provincia</th>
+            <th>Objeto</th>
+            <th>Área</th>
+            <th>Importe (€)</th>
+            <th>Score</th>
+            <th>Norma</th>
+            <th>Enlace</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Licitaciones por Área</h3>
+        <div id="chart_area"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Licitaciones por Tipo</h3>
+        <div id="chart_tipo"></div>
+      </div>
+      <div class="chart-card">
+        <h3>Licitaciones por Provincia</h3>
+        <div id="chart_provincia"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-content">
+      <div class="footer-section">
+        <h4>Sobre CODANOR</h4>
+        <p>Consultoría organizativa y legal especializada en sistemas de gestión y cumplimiento normativo.</p>
+      </div>
+      <div class="footer-section">
+        <h4>Servicios</h4>
+        <p>RGPD/LOPD | ISO 9001 | ISO 14001 | ISO 27001 | ENS | NIS2</p>
+      </div>
+      <div class="footer-section">
+        <h4>Contacto</h4>
+        <p>📍 Barcelona, Catalunya</p>
+        <p>📞 (0034) 616 947 274</p>
+        <p>✉️ info@codanor.com</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      © 2026 CODANOR - Consultoría Organizativa y Legal | Todos los derechos reservados
+    </div>
+  </footer>
+
+  <script>
+    const sheetUrl = 'datos.csv';
+    const API_BASE = 'http://localhost:5050';
+    let allData = [];
+    let dupCount = 0;
+    let servidorDisponible = false;
+    let pollingInterval = null;
+
+    // ─── Comunicación con el servidor Flask ──────────────────────────
+    async function checkServidor() {
+      try {
+        const resp = await fetch(`${API_BASE}/api/estado`, { signal: AbortSignal.timeout(3000) });
+        if (resp.ok) {
+          servidorDisponible = true;
+          const data = await resp.json();
+          document.getElementById('serverStatus').textContent = 
+            `Servidor OK | ${data.total_licitaciones} licitaciones | ${data.ultima_actualizacion || 'Sin datos'}`;
+          document.getElementById('serverStatus').style.color = '#27ae60';
+          return data;
+        }
+      } catch(e) {
+        servidorDisponible = false;
+        document.getElementById('serverStatus').textContent = 'Servidor offline - usando datos locales';
+        document.getElementById('serverStatus').style.color = '#e74c3c';
+      }
+      return null;
+    }
+
+    async function cargarDesdeServidor() {
+      const estado = await checkServidor();
+      if (!servidorDisponible) {
+        alert('El servidor no está disponible.\n\nEjecuta: python3 servidor_licitaciones.py\nen la carpeta del proyecto.');
+        return;
+      }
+      
+      document.getElementById('debugMsg').textContent = 'Cargando datos del servidor...';
+      
+      try {
+        const resp = await fetch(`${API_BASE}/api/licitaciones`);
+        const data = await resp.json();
+        
+        if (data.licitaciones && data.licitaciones.length > 0) {
+          allData = data.licitaciones;
+          document.getElementById('debugMsg').textContent = 
+            `✓ ${data.total} licitaciones del servidor (${data.ultima_actualizacion || ''})`;
+          updateCounts();
+          applyFilters();
+        } else {
+          document.getElementById('debugMsg').textContent = 'Servidor sin datos. Pulse "Actualizar desde Fuentes".';
+        }
+      } catch(e) {
+        document.getElementById('debugMsg').textContent = 'Error cargando del servidor: ' + e.message;
+      }
+    }
+
+    async function actualizarDesdeServidor() {
+      const estado = await checkServidor();
+      if (!servidorDisponible) {
+        alert('El servidor no está disponible.\n\nEjecuta en terminal:\n  cd "Seguimiento licitaciones"\n  python3 servidor_licitaciones.py\n\nLuego pulsa este botón de nuevo.');
+        return;
+      }
+
+      if (estado && estado.scraping_en_curso) {
+        alert('Ya hay un scraping en curso. Por favor espere.');
+        return;
+      }
+
+      // Mostrar barra de progreso
+      document.getElementById('progressBar').style.display = 'block';
+      document.getElementById('progressFill').style.width = '10%';
+      document.getElementById('progressText').textContent = 'Iniciando scraping de fuentes...';
+
+      try {
+        const resp = await fetch(`${API_BASE}/api/actualizar`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ dias: 90, max: 1000, solo_api: false }),
+        });
+        const data = await resp.json();
+        
+        if (data.status === 'iniciado') {
+          document.getElementById('progressText').textContent = data.mensaje;
+          document.getElementById('progressFill').style.width = '30%';
+          
+          // Polling cada 3 segundos para verificar progreso
+          let progreso = 30;
+          pollingInterval = setInterval(async () => {
+            try {
+              const estadoResp = await fetch(`${API_BASE}/api/estado`);
+              const estadoData = await estadoResp.json();
+              
+              progreso = Math.min(progreso + 10, 90);
+              document.getElementById('progressFill').style.width = progreso + '%';
+              
+              if (!estadoData.scraping_en_curso) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                document.getElementById('progressFill').style.width = '100%';
+                document.getElementById('progressText').textContent = 
+                  `✓ Completado - ${estadoData.total_licitaciones} licitaciones encontradas`;
+                
+                // Cargar los nuevos datos
+                setTimeout(async () => {
+                  await cargarDesdeServidor();
+                  document.getElementById('progressBar').style.display = 'none';
+                }, 1500);
+              } else {
+                document.getElementById('progressText').textContent = 
+                  `Scraping en curso... (${estadoData.total_licitaciones} encontradas hasta ahora)`;
+              }
+            } catch(e) {
+              // Seguir intentando
+            }
+          }, 3000);
+        }
+      } catch(e) {
+        document.getElementById('progressBar').style.display = 'none';
+        alert('Error al iniciar scraping: ' + e.message);
+      }
+    }
+
+    // ─── Lógica original ────────────────────────────────────────────
+
+    function calcularScore(row) {
+      if (row['Valoracion'] && parseInt(row['Valoracion']) > 0) {
+        return parseInt(row['Valoracion']);
+      }
+      let score = 0;
+      const importe = parseFloat(row['Importe']) || 0;
+      if (importe > 1000000) score += 3.0;
+      else if (importe > 500000) score += 2.4;
+      else if (importe > 100000) score += 1.8;
+      else if (importe > 50000) score += 1.2;
+      else if (importe > 0) score += 0.6;
+      
+      const norma = row['Norma afectada'] || '';
+      if (norma.includes('ISO27001') || norma.includes('ENS') || norma.includes('NIS2')) score += 2.5;
+      else if (norma.includes('ISO22301')) score += 2.0;
+      else if (norma.includes('ISO9001')) score += 1.75;
+      else if (norma.includes('ISO14001')) score += 1.25;
+      else if (norma.length > 0) score += 0.75;
+      
+      const dias = getDiasNum(row['Fecha limite']);
+      if (dias !== null) {
+        if (dias < 0) score += 0;
+        else if (dias <= 3) score += 2.0;
+        else if (dias <= 7) score += 1.5;
+        else if (dias <= 14) score += 1.0;
+        else score += 0.5;
+      }
+      
+      const tipo = row['Tipo'] || '';
+      if (tipo.includes('Generalitat')) score += 1.5;
+      else if (tipo.includes('Hospital')) score += 1.35;
+      else if (tipo.includes('Universidad')) score += 1.05;
+      else if (tipo.includes('Ajuntament')) score += 0.9;
+      else if (tipo.includes('Empresa')) score += 0.75;
+      else if (tipo.includes('Consorci')) score += 0.75;
+      
+      const prov = row['Provincia'] || '';
+      if (prov.includes('Barcelona')) score += 1.0;
+      else if (prov.length > 0) score += 0.8;
+      
+      return Math.min(10, Math.round(score * 10) / 10);
+    }
+
+    function getDiasNum(fechaLimite) {
+      if (!fechaLimite) return null;
+      const partes = fechaLimite.split('/');
+      if (partes.length !== 3) return null;
+      const fecha = new Date(partes[2], partes[1] - 1, partes[0]);
+      const hoy = new Date();
+      return Math.ceil((fecha - hoy) / (1000 * 60 * 60 * 24));
+    }
+
+    function getDiasTag(fechaLimite) {
+      if (!fechaLimite) return '';
+      const dias = getDiasNum(fechaLimite);
+      if (dias === null) return '';
+      if (dias < 0) return `<span class="dias-tag normal">Caducó</span>`;
+      if (dias <= 3) return `<span class="dias-tag urgente">${dias}d</span>`;
+      if (dias <= 7) return `<span class="dias-tag urgente">${dias}d</span>`;
+      return `<span class="dias-tag ok">${dias}d</span>`;
+    }
+
+    function isExpired(fechaLimite) {
+      if (!fechaLimite) return false;
+      const partes = fechaLimite.split('/');
+      if (partes.length !== 3) return false;
+      const fecha = new Date(partes[2], partes[1] - 1, partes[0]);
+      const hoy = new Date();
+      return fecha < hoy;
+    }
+
+    function getScoreRubrica(score) {
+      if (score >= 9) return 'CRÍTICA: Urgente + Alta normativa + Alto importe';
+      if (score >= 8) return 'ALTA: Importe alto o normativa crítica';
+      if (score >= 7) return 'MEDIA-ALTA: Importe medio-alto o varias normas';
+      if (score >= 6) return 'MEDIA: Importe medio o norma secundaria';
+      if (score >= 5) return 'MEDIA-BAJA: Importe bajo o norma básica';
+      return 'BAJA: Prioridad menor';
+    }
+
+    function deduplicate(data) {
+      const seen = new Set();
+      const result = [];
+      data.forEach(row => {
+        const key = (row['Organismo'] || '').toLowerCase().trim() + '|' +
+                    (row['Objeto'] || '').substring(0, 100).toLowerCase().trim();
+        if (!seen.has(key)) {
+          seen.add(key);
+          result.push(row);
+        } else {
+          dupCount++;
+        }
+      });
+      return result;
+    }
+
+    const datosCSV = `Fecha publicacion;Fecha limite;Organismo;Tipo;Provincia;Objeto;Area;Importe;Valoracion;Norma afectada;URL
+13/02/2026;16/03/2026;Barcelona Activa SAU SPM;Empresa pública;Barcelona;Serveis per al desenvolupament i execucio del Programa de digitalitzacio d'empreses;Otros;190687.66;7;ISO27001;https://licitacions.bcn.cat/site/18/
+13/02/2026;10/03/2026;SENASA;Empresa pública;Barcelona;Servei de suport tecnic per al manteniment de certificacions ENS ISO27001 i adequacio a NIS2;Informática;450000.00;9;NIS2;https://www.concursospublicos.com
+13/02/2026;28/02/2026;Ajuntament de Barcelona;Ajuntament;Barcelona;Manteniment i conservacio de la xarxa i instal·lacions del clavegueram;Obras;1200000.00;8;ISO9001;https://contrataciondelestado.es
+12/02/2026;15/03/2026;Generalitat de Catalunya;Generalitat;Barcelona;Servei d'atencio ciutadana 012;Servicios;350000.00;7;ENS;https://contrataciondelestado.es
+11/02/2026;16/03/2026;Barcelona Activa SAU SPM;Empresa pública;Barcelona;Procediment de concurrencia publica per a la seleccio d'un projecte d'impuls de l'emprenedoria;Otros;0.00;5;;https://licitacions.bcn.cat/site/18/
+10/02/2026;27/02/2026;Barcelona Activa SAU SPM;Empresa pública;Barcelona;Serveis docents per al disseny creacio imparticio i seguiment d'accions formatives tecnicprofessionals;Formacion;72000.00;8;ISO9001;https://licitacions.bcn.cat/site/18/
+10/02/2026;05/03/2026;ADIF;Empresa pública;Barcelona;Auditories externes ISO9001 ISO14001 ISO45001 ISO27001;Servicios;850000.00;9;ISO27001;https://www.licitaciones.es
+05/02/2026;23/02/2026;Barcelona Activa SAU SPM;Empresa pública;Barcelona;Serveis de definicio implementacio i manteniment d'un sistema d'analitica web;Informatica;13082.25;6;ISO27001;https://licitacions.bcn.cat/site/18/
+05/02/2026;28/02/2026;Zona Franca Barcelona;Consorci;Barcelona;Sistema de gestio de seguretat de la informacio ISO27001;Informática;280000.00;8;ISO27001;https://zfbarcelona.es
+28/01/2026;02/03/2026;Barcelona Activa SAU SPM;Empresa pública;Barcelona;Serveis per a la gestio coordinacio dinamitzacio i imparticio dels programes d'abast social de l'Ateneu de Fabricacio Digital;Otros;89274.30;7;ENS;https://licitacions.bcn.cat/site/18/
+23/01/2026;27/02/2026;Barcelona Activa SAU SPM;Empresa pública;Barcelona;Subministrament de material informatic i multimèdia;Informatica;211204.00;8;ISO27001;https://licitacions.bcn.cat/site/18/
+20/01/2026;23/02/2026;Barcelona Activa SAU SPM;Empresa pública;Barcelona;Serveis d'imparticio d'accions de capacitacio tecnic professional de certificats professionals;Formacion;128253.20;7;ISO9001;https://licitacions.bcn.cat/site/18/
+14/01/2026;18/02/2026;Barcelona Activa SAU SPM;Empresa pública;Barcelona;Contracte mixt d'obres i subministraments per a la reforma de l'equipament del Porta 22;Obras;339854.00;6;NIS2;https://licitacions.bcn.cat/site/18/
+30/01/2026;30/01/2026;Generalitat de Catalunya;Generalitat;Barcelona;Assistència tècnica el Sistema de Gestió d'Actius Geotècnics a la xarxa de carreteres;Obras;2887429.20;9;ENS;https://tendios.com/organo-de-contratacion/generalitat-de-catalunya
+14/01/2026;14/01/2026;Generalitat de Catalunya;Generalitat;Barcelona;Execucio d'operacions de conservacio d'obra civil als trams de la xarxa de carreteres de la Generalitat;Obras;171058745.31;9;ISO14001;https://tendios.com/organo-de-contratacion/generalitat-de-catalunya
+08/01/2026;08/01/2026;Generalitat de Catalunya;Generalitat;Barcelona;Realització d'auditories a les entitats col·laboradores de la Generalitat;Otros;114240.00;6;ISO27001;https://tendios.com/organo-de-contratacion/generalitat-de-catalunya
+07/01/2026;07/01/2026;Generalitat de Catalunya;Generalitat;Barcelona;Subministrament de quinze (15) furgones amb motorització elèctrica o híbrida;Suministros;2169370.00;8;ISO14001;https://tendios.com/organo-de-contratacion/generalitat-de-catalunya
+07/01/2026;07/01/2026;Generalitat de Catalunya;Generalitat;Barcelona;Servei d'assistència tècnica a la xarxa d'escoles verdes de la Generalitat;Otros;1315950.00;7;ISO14001;https://tendios.com/organo-de-contratacion/generalitat-de-catalunya
+07/01/2026;07/01/2026;Generalitat de Catalunya;Generalitat;Barcelona;Manteniment multiprotocol i millora d'eficiència energètica de diverses dependències de la Generalitat;Mantenimiento;2093268.61;7;ISO50001;https://tendios.com/organo-de-contratacion/generalitat-de-catalunya
+12/02/2026;15/03/2026;Hospital Sant Joan de Deu;Hospital;Barcelona;Servei d'analisi de metilacio de l'ADN en mostres de saliva per al Projecte PI24/00195;Sanidad;0.00;6;ISO27001;https://vhir.vallhebron.com
+12/02/2026;10/03/2026;Hospital Sant Joan de Deu;Hospital;Barcelona;Subministrament d'arcs quirúrgics;Sanidad;150000.00;7;ISO13485;https://www.sjdhospitalbarcelona.org
+10/02/2026;21/02/2026;Institut Català d'Oncologia;Hospital;Barcelona;Subministrament de senyalització del recinte de l'Hospital Duran i Reynals;Sanidad;85000.00;5;ENS;https://op.europa.eu
+08/02/2026;01/03/2026;Hospital Universitari de Bellvitge;Hospital;Barcelona;Servei de seguretat de l'Hospital Universitat de Bellvitge;Servicios;180000.00;8;ISO27001;https://op.europa.eu
+05/02/2026;16/02/2026;Universidad de Barcelona;Universidad;Barcelona;Obres de la reforma d'espais per a la instalacio d'un Centre de Processament de Dades (CPD) a la Facultat de Quimica;Obras;450000.00;7;ISO27001;https://www.ub.edu
+03/02/2026;28/02/2026;Universidad de Barcelona;Universidad;Barcelona;Subministrament i instalacio de llones i vinils per a la Unitat d'Imatge Corporativa;Otros;35000.00;6;;https://www.ub.edu
+28/01/2026;15/03/2026;Universitat Autonoma de Barcelona;Universidad;Barcelona;Contracte de serveis de manteniment de les instal·lacions de la UAB;Mantenimiento;320000.00;8;ISO14001;https://uab.cat
+25/01/2026;20/03/2026;Ajuntament de Barcelona;Ajuntament;Barcelona;Servei de neteja d'edificis municipals;Neteja;2500000.00;9;ISO9001;https://barcelona.cat
+20/01/2026;15/02/2026;Ajuntament de Barcelona;Ajuntament;Barcelona;Contracte d'obres de millora de la xarxa de carrils bicicletes;Obras;1800000.00;7;;https://barcelona.cat
+15/01/2026;10/03/2026;Ajuntament de Girona;Ajuntament;Girona;Servei de gestio bibliotecaria de les biblioteques municipals;Cultural;420000.00;6;ISO9001;https://www.girona.cat
+12/01/2026;25/02/2026;Ajuntament de Tarragona;Ajuntament;Tarragona;Manteniment de les zones verdes urbanes;Mantenimiento;890000.00;7;ISO14001;https://tarragona.cat
+10/01/2026;20/02/2026;Ajuntament de Lleida;Ajuntament;Lleida;Subministrament de material escolar per als centres educatius municipals;Educacion;180000.00;5;;https://www.paeria.cat
+05/01/2026;01/03/2026;Consorci de Salut i Social de Catalunya;Consorci;Barcelona;Serveis de logistica i distribucio de material sanitari;Sanidad;1200000.00;8;ISO27001;https://www.consorci.org
+03/01/2026;18/02/2026;Consorci AOC;Consorci;Barcelona;Servei de suport tecnic a la plataforma de contractacio electronica;Informatica;450000.00;7;ENS;https://consorci-aoc.cat`;
+
+    async function loadData() {
+      document.getElementById('debugMsg').textContent = 'Cargando datos...';
+      console.log('Cargando datos...');
+      
+      // 1. Intentar cargar desde el servidor Flask
+      await checkServidor();
+      if (servidorDisponible) {
+        try {
+          const resp = await fetch(`${API_BASE}/api/licitaciones`, { signal: AbortSignal.timeout(5000) });
+          const data = await resp.json();
+          if (data.licitaciones && data.licitaciones.length > 0) {
+            allData = data.licitaciones;
+            document.getElementById('debugMsg').textContent = 
+              `✓ ${data.total} licitaciones del servidor (${data.ultima_actualizacion || ''})`;
+            updateCounts();
+            applyFilters();
+            return;
+          }
+        } catch(e) {
+          console.log('Servidor no disponible, usando datos locales:', e);
+        }
+      }
+
+      // 2. Fallback: datos embebidos en el HTML
+      const results = Papa.parse(datosCSV, {
+        header: true,
+        skipEmptyLines: true,
+        delimiter: ";"
+      });
+      
+      console.log('Datos parseados:', results.data);
+      console.log('Errores:', results.errors);
+      console.log('Columnas:', results.meta.fields);
+      
+      if (results.errors.length > 0) {
+        document.getElementById('debugMsg').textContent = 'Error al parsear: ' + JSON.stringify(results.errors);
+      } else if (results.data.length === 0) {
+        document.getElementById('debugMsg').textContent = 'No se encontraron datos.';
+      } else {
+        let msg = '✓ ' + results.data.length + ' licitaciones (datos locales)';
+        if (!servidorDisponible) {
+          msg += ' | Inicia el servidor para datos en vivo';
+        }
+        document.getElementById('debugMsg').textContent = msg;
+      }
+      
+      allData = deduplicate(results.data.filter(row => row && row['Fecha publicacion'] && row['Organismo']));
+      console.log('Datos filtrados:', allData.length);
+      updateCounts();
+      applyFilters();
+    }
+
+    function updateCounts() {
+      const active = allData.filter(r => !isExpired(r['Fecha limite'])).length;
+      const expired = allData.filter(r => isExpired(r['Fecha limite'])).length;
+      const urgente = allData.filter(r => {
+        const dias = getDiasNum(r['Fecha limite']);
+        return dias !== null && dias > 0 && dias <= 7;
+      }).length;
+      
+      document.getElementById('totalCount').textContent = allData.length;
+      document.getElementById('activeCount').textContent = active;
+      document.getElementById('expiredCount').textContent = expired;
+      document.getElementById('urgentCount').textContent = urgente;
+    }
+
+    function renderTable(data) {
+      const tbody = document.querySelector('#licitacionesTable tbody');
+      tbody.innerHTML = '';
+      
+      const alertas = [];
+      
+      data.forEach(row => {
+        const score = calcularScore(row);
+        const expired = isExpired(row['Fecha limite']);
+        const dias = getDiasNum(row['Fecha limite']);
+        const clase = expired ? 'expired' : (score >= 8 ? 'high' : (score >= 5 ? 'medium' : 'low'));
+        
+        if (!expired && dias !== null && dias <= 7) {
+          alertas.push({
+            organismo: row['Organismo'],
+            objeto: row['Objeto'],
+            dias: dias,
+            url: row['URL']
+          });
+        }
+        
+        const tr = document.createElement('tr');
+        tr.className = clase;
+        tr.innerHTML = `
+          <td>${row['Fecha publicacion'] || ''}</td>
+          <td>${row['Fecha limite'] || ''} ${getDiasTag(row['Fecha limite'])}</td>
+          <td><strong>${row['Organismo'] || ''}</strong></td>
+          <td>${row['Tipo'] || ''}</td>
+          <td>${row['Provincia'] || ''}</td>
+          <td>${row['Objeto'] || ''}</td>
+          <td>${row['Area'] || ''}</td>
+          <td>${row['Importe'] ? parseFloat(row['Importe']).toLocaleString('es-ES') + ' €' : '-'}</td>
+          <td class="score-cell">${score} <span class="score-info" title="${getScoreRubrica(score)}">ℹ️</span></td>
+          <td>${row['Norma afectada'] ? `<span class="badge badge-norma">${row['Norma afectada']}</span>` : '-'}</td>
+          <td><a href="${row['URL'] || '#'}" target="_blank" class="btn" title="${row['URL'] || ''}">Ir al anuncio</a></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      
+      const alertasContainer = document.getElementById('alertasContainer');
+      const alertasList = document.getElementById('alertasList');
+      if (alertas.length > 0) {
+        alertasContainer.classList.add('show');
+        alertasList.innerHTML = alertas.map(a => 
+          `<li><strong>${a.dias} días</strong>: ${a.organismo} - ${a.objeto.substring(0, 60)}... <a href="${a.url}" target="_blank">[Ver]</a></li>`
+        ).join('');
+      } else {
+        alertasContainer.classList.remove('show');
+      }
+    }
+
+    document.getElementById('areaFilter').addEventListener('change', applyFilters);
+    document.getElementById('tipoFilter').addEventListener('change', applyFilters);
+    document.getElementById('provFilter').addEventListener('change', applyFilters);
+    document.getElementById('normaFilter').addEventListener('change', applyFilters);
+    document.getElementById('vigenciaFilter').addEventListener('change', applyFilters);
+
+    function filtrarVigencia(tipo) {
+      document.getElementById('areaFilter').value = 'all';
+      document.getElementById('tipoFilter').value = 'all';
+      document.getElementById('provFilter').value = 'all';
+      document.getElementById('normaFilter').value = 'all';
+      document.getElementById('vigenciaFilter').value = tipo;
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const area = document.getElementById('areaFilter').value;
+      const tipo = document.getElementById('tipoFilter').value;
+      const prov = document.getElementById('provFilter').value;
+      const norma = document.getElementById('normaFilter').value;
+      const vigencia = document.getElementById('vigenciaFilter').value;
+      
+      const filtered = allData.filter(row => {
+        const expired = isExpired(row['Fecha limite']);
+        const dias = getDiasNum(row['Fecha limite']);
+        
+        const matchArea = area === 'all' || (row['Area'] && row['Area'].includes(area));
+        const matchTipo = tipo === 'all' || (row['Tipo'] && row['Tipo'].includes(tipo));
+        const matchProv = prov === 'all' || (row['Provincia'] && row['Provincia'].includes(prov));
+        const matchNorma = norma === 'all' || (row['Norma afectada'] && row['Norma afectada'].includes(norma));
+        
+        let matchVigencia = true;
+        if (vigencia === 'activas') matchVigencia = !expired;
+        if (vigencia === 'caducadas') matchVigencia = expired;
+        if (vigencia === 'urgentes') matchVigencia = !expired && dias !== null && dias > 0 && dias <= 7;
+        
+        return matchArea && matchTipo && matchProv && matchNorma && matchVigencia;
+      });
+      
+      renderTable(filtered);
+      drawCharts(filtered);
+    }
+
+    google.charts.load('current', {'packages':['corechart'], 'callback': function() {
+      loadData();
+    }});
+    
+    function drawCharts(data) {
+      drawChartArea(data);
+      drawChartTipo(data);
+      drawChartProvincia(data);
+    }
+
+    function drawChartArea(data) {
+      if (!data || data.length === 0) return;
+      let counts = {};
+      data.forEach(r => { if (r['Area']) counts[r['Area']] = (counts[r['Area']] || 0) + 1; });
+      let chartData = [['Area','Licitaciones']];
+      for(let k in counts) chartData.push([k, counts[k]]);
+      if (chartData.length <= 1) return;
+      let chart = new google.visualization.PieChart(document.getElementById('chart_area'));
+      chart.draw(google.visualization.arrayToDataTable(chartData), {title:'', colors: ['#1a4d7c','#2d8bc7','#3498db','#5dade2','#85c1e9']});
+    }
+
+    function drawChartTipo(data) {
+      if (!data || data.length === 0) return;
+      let counts = {};
+      data.forEach(r => { if (r['Tipo']) counts[r['Tipo']] = (counts[r['Tipo']] || 0) + 1; });
+      let chartData = [['Tipo','Licitaciones']];
+      for(let k in counts) chartData.push([k, counts[k]]);
+      if (chartData.length <= 1) return;
+      let chart = new google.visualization.BarChart(document.getElementById('chart_tipo'));
+      chart.draw(google.visualization.arrayToDataTable(chartData), {title:'', legend:{position:'none'}, colors: ['#1a4d7c']});
+    }
+
+    function drawChartProvincia(data) {
+      if (!data || data.length === 0) return;
+      let counts = {};
+      data.forEach(r => { if (r['Provincia']) counts[r['Provincia']] = (counts[r['Provincia']] || 0) + 1; });
+      let chartData = [['Provincia','Licitaciones']];
+      for(let k in counts) chartData.push([k, counts[k]]);
+      if (chartData.length <= 1) return;
+      let chart = new google.visualization.ColumnChart(document.getElementById('chart_provincia'));
+      chart.draw(google.visualization.arrayToDataTable(chartData), {title:'', legend:{position:'none'}, colors: ['#2d8bc7']});
+    }
+
+  </script>
+</body>
+</html>
