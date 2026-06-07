@@ -386,10 +386,12 @@ def scrape_gencat_api(organos_filtro=None, dias_atras=90, max_resultados=1000):
     ]
     fases_filter = " OR ".join([f"fase_publicacio='{f}'" for f in fases])
 
-    # Filtro temporal: solo licitaciones recientes
+    # Filtro temporal: solo licitaciones recientes y NO caducadas
+    fecha_hoy = datetime.now().strftime("%Y-%m-%dT00:00:00.000")
     where_clauses = [
         f"({fases_filter})",
         f"data_publicacio_anunci > '{fecha_corte}'",
+        f"(data_limit_presentacio >= '{fecha_hoy}' OR data_limit_presentacio IS NULL)",
     ]
 
     # Consulta paginada
@@ -787,7 +789,19 @@ def scrape_todo(dias_atras=90, max_api=1000, solo_api=False):
     todas = deduplicar(todas)
     todas = normalizar(todas)
 
-    # 4. Ordenar por score descendente
+    # 4. Filtrar caducadas (fecha límite ya pasada)
+    antes = len(todas)
+    todas_ok = []
+    for lic in todas:
+        dias = dias_restantes(lic.get("Fecha limite", ""))
+        if dias is None or dias >= 0:
+            todas_ok.append(lic)
+    todas = todas_ok
+    descartadas = antes - len(todas)
+    if descartadas > 0:
+        log.info(f"Filtrado de caducadas: {antes} -> {len(todas)} ({descartadas} caducadas eliminadas)")
+
+    # 5. Ordenar por score descendente
     todas.sort(key=lambda x: x.get("Valoracion", 0), reverse=True)
 
     elapsed = time.time() - inicio

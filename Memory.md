@@ -4,7 +4,7 @@
 ## Estado actual
 
 - **Fase**: Revisado, correcciones criticas aplicadas, documentacion v3 completada
-- **Ultimo cambio significativo**: Manual de usuario v3 creado (2026-04-28)
+- **Ultimo cambio significativo**: Filtrado de licitaciones caducadas en scraper (2026-04-28)
 - **Tamano**: ~530 KB codigo fuente (3 ficheros), ~21 ficheros totales en 6 directorios
 - **Lineas de codigo**: scraper 867 + servidor 311 + dashboard 887 = 2065 lineas
 
@@ -99,6 +99,9 @@ Seguimiento_licitaciones/
 12. Formato de logging unificado (BAJA)
 13. Manejo de importes con formato europeo (BAJA)
 14. Validacion de respuesta HTTP antes de procesar JSON de API (BAJA)
+
+### Correcciones aplicadas (2026-04-28)
+15. Filtrado de licitaciones caducadas: filtro SoQL en API Gencat (data_limit_presentacio >= hoy) + filtro post-procesado en scrape_todo() que descarta licitaciones con fecha limite pasada (ALTA)
 
 ### Hallazgos pendientes de corregir
 - **CRITICO**: Path traversal en ruta catch-all `/<path:filename>` (sirve cualquier archivo del directorio)

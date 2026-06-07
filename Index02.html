@@ -114,15 +114,18 @@
       font-size: 0.85rem;
       color: var(--primary);
     }
-    .filter-group select {
+    .filter-group select,
+    .filter-group input[type="date"] {
       padding: 10px 15px;
       border: 2px solid var(--border);
       border-radius: 6px;
       font-family: inherit;
       font-size: 0.9rem;
       transition: border-color 0.3s;
+      background: white;
     }
-    .filter-group select:focus {
+    .filter-group select:focus,
+    .filter-group input[type="date"]:focus {
       outline: none;
       border-color: var(--primary);
     }
@@ -362,6 +365,14 @@
             <option value="urgentes">Urgentes (&lt;7 días)</option>
             <option value="caducadas">Solo caducadas</option>
           </select>
+        </div>
+        <div class="filter-group">
+          <label for="fechaDesde">Publicación desde</label>
+          <input type="date" id="fechaDesde">
+        </div>
+        <div class="filter-group">
+          <label for="fechaHasta">Publicación hasta</label>
+          <input type="date" id="fechaHasta">
         </div>
       </div>
     </div>
@@ -801,6 +812,8 @@
     document.getElementById('provFilter').addEventListener('change', applyFilters);
     document.getElementById('normaFilter').addEventListener('change', applyFilters);
     document.getElementById('vigenciaFilter').addEventListener('change', applyFilters);
+    document.getElementById('fechaDesde').addEventListener('change', applyFilters);
+    document.getElementById('fechaHasta').addEventListener('change', applyFilters);
 
     function filtrarVigencia(tipo) {
       document.getElementById('areaFilter').value = 'all';
@@ -808,7 +821,17 @@
       document.getElementById('provFilter').value = 'all';
       document.getElementById('normaFilter').value = 'all';
       document.getElementById('vigenciaFilter').value = tipo;
+      document.getElementById('fechaDesde').value = '';
+      document.getElementById('fechaHasta').value = '';
       applyFilters();
+    }
+
+    function parseFechaPub(fechaStr) {
+      // Convierte "dd/mm/yyyy" a Date para comparación
+      if (!fechaStr) return null;
+      const partes = fechaStr.split('/');
+      if (partes.length !== 3) return null;
+      return new Date(partes[2], partes[1] - 1, partes[0]);
     }
 
     function applyFilters() {
@@ -817,6 +840,12 @@
       const prov = document.getElementById('provFilter').value;
       const norma = document.getElementById('normaFilter').value;
       const vigencia = document.getElementById('vigenciaFilter').value;
+      const fechaDesde = document.getElementById('fechaDesde').value;
+      const fechaHasta = document.getElementById('fechaHasta').value;
+
+      // Convertir inputs date (yyyy-mm-dd) a Date al inicio del día / fin del día
+      const desde = fechaDesde ? new Date(fechaDesde + 'T00:00:00') : null;
+      const hasta = fechaHasta ? new Date(fechaHasta + 'T23:59:59') : null;
       
       const filtered = allData.filter(row => {
         const expired = isExpired(row['Fecha limite']);
@@ -831,8 +860,14 @@
         if (vigencia === 'activas') matchVigencia = !expired;
         if (vigencia === 'caducadas') matchVigencia = expired;
         if (vigencia === 'urgentes') matchVigencia = !expired && dias !== null && dias > 0 && dias <= 7;
+
+        // Filtro por fecha de publicación
+        let matchFecha = true;
+        const fechaPub = parseFechaPub(row['Fecha publicacion']);
+        if (desde && fechaPub) matchFecha = fechaPub >= desde;
+        if (hasta && fechaPub && matchFecha) matchFecha = fechaPub <= hasta;
         
-        return matchArea && matchTipo && matchProv && matchNorma && matchVigencia;
+        return matchArea && matchTipo && matchProv && matchNorma && matchVigencia && matchFecha;
       });
       
       renderTable(filtered);
