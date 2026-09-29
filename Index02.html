@@ -557,7 +557,14 @@
       }
     }
 
-    // ─── Lógica original ────────────────────────────────────────────
+     // ─── Utilidad de escape XSS ─────────────────────────────────────
+     function escapeHtml(str) {
+       const d = document.createElement('div');
+       d.textContent = str == null ? '' : String(str);
+       return d.innerHTML;
+     }
+
+     // ─── Lógica original ────────────────────────────────────────────
 
     function calcularScore(row) {
       if (row['Valoracion'] && parseInt(row['Valoracion']) > 0) {
@@ -780,17 +787,17 @@
         const tr = document.createElement('tr');
         tr.className = clase;
         tr.innerHTML = `
-          <td>${row['Fecha publicacion'] || ''}</td>
-          <td>${row['Fecha limite'] || ''} ${getDiasTag(row['Fecha limite'])}</td>
-          <td><strong>${row['Organismo'] || ''}</strong></td>
-          <td>${row['Tipo'] || ''}</td>
-          <td>${row['Provincia'] || ''}</td>
-          <td>${row['Objeto'] || ''}</td>
-          <td>${row['Area'] || ''}</td>
+          <td>${escapeHtml(row['Fecha publicacion'] || '')}</td>
+          <td>${escapeHtml(row['Fecha limite'] || '')} ${getDiasTag(row['Fecha limite'])}</td>
+          <td><strong>${escapeHtml(row['Organismo'] || '')}</strong></td>
+          <td>${escapeHtml(row['Tipo'] || '')}</td>
+          <td>${escapeHtml(row['Provincia'] || '')}</td>
+          <td>${escapeHtml(row['Objeto'] || '')}</td>
+          <td>${escapeHtml(row['Area'] || '')}</td>
           <td>${row['Importe'] ? parseFloat(row['Importe']).toLocaleString('es-ES') + ' €' : '-'}</td>
-          <td class="score-cell">${score} <span class="score-info" title="${getScoreRubrica(score)}">ℹ️</span></td>
-          <td>${row['Norma afectada'] ? `<span class="badge badge-norma">${row['Norma afectada']}</span>` : '-'}</td>
-          <td><a href="${row['URL'] || '#'}" target="_blank" class="btn" title="${row['URL'] || ''}">Ir al anuncio</a></td>
+          <td class="score-cell">${parseInt(score) || 0} <span class="score-info" title="${escapeHtml(getScoreRubrica(score))}">ℹ️</span></td>
+          <td>${row['Norma afectada'] ? `<span class="badge badge-norma">${escapeHtml(row['Norma afectada'])}</span>` : '-'}</td>
+          <td><a href="${escapeHtml(row['URL'] || '#')}" target="_blank" rel="noopener noreferrer" class="btn" title="${escapeHtml(row['URL'] || '')}">Ir al anuncio</a></td>
         `;
         tbody.appendChild(tr);
       });
@@ -799,8 +806,8 @@
       const alertasList = document.getElementById('alertasList');
       if (alertas.length > 0) {
         alertasContainer.classList.add('show');
-        alertasList.innerHTML = alertas.map(a => 
-          `<li><strong>${a.dias} días</strong>: ${a.organismo} - ${a.objeto.substring(0, 60)}... <a href="${a.url}" target="_blank">[Ver]</a></li>`
+        alertasList.innerHTML = alertas.map(a =>
+          `<li><strong>${parseInt(a.dias)} días</strong>: ${escapeHtml(a.organismo)} - ${escapeHtml(a.objeto.substring(0, 60))}... <a href="${escapeHtml(a.url)}" target="_blank" rel="noopener noreferrer">[Ver]</a></li>`
         ).join('');
       } else {
         alertasContainer.classList.remove('show');

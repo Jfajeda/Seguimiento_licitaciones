@@ -24,7 +24,7 @@ from scraper_licitaciones import scrape_todo, guardar_csv, guardar_json
 
 # ─── Configuración ───────────────────────────────────────────────────────────
 app = Flask(__name__, static_folder='.')
-CORS(app)  # Permitir peticiones desde cualquier origen
+CORS(app, origins=['http://localhost:5050', 'http://127.0.0.1:5050'])  # Restringir a localhost
 
 logging.basicConfig(
     level=logging.INFO,
@@ -269,9 +269,20 @@ def api_estadisticas():
 
 # ─── Servir archivos estáticos ──────────────────────────────────────────────
 
+# Whitelist explícita — impide path traversal (OWASP A5)
+_STATIC_WHITELIST = {
+    'datos.csv',
+    'datos_actualizados.csv',
+    'cache_licitaciones.json',
+    'favicon.ico',
+}
+
+
 @app.route('/<path:filename>')
 def static_files(filename):
-    """Sirve archivos estáticos del directorio de trabajo."""
+    """Sirve archivos estáticos del directorio de trabajo (solo whitelist)."""
+    if filename not in _STATIC_WHITELIST:
+        abort(404)
     return send_from_directory(WORK_DIR, filename)
 
 
